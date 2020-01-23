@@ -1,0 +1,17 @@
+body {
+    background-color: #fff;
+    font-family: 'Nunito', sans-serif;
+}
+
+#logo {
+    width: 40%;
+}
+
+.content {
+    margin-left: 5%;
+}
+
+#title {
+    display: inline;
+    float: right;
+}
