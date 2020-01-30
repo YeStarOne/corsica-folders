@@ -37,5 +37,5 @@ function addTag() {
 function setScreenTag(screen) {
     var newTag = document.getElementById("tag" + screen).value;
     fetch('changeScreenTag?tag=' + newTag + '&screen=' + screen);
-    //location.reload();
+    location.reload();
 }
