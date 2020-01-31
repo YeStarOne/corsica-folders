@@ -31,7 +31,7 @@ module.exports = function (corsica) {
     };
   
     corsica.serveRoute('ui', function(req, res) {
-      var out = '<html> <head> <link href="https://fonts.googleapis.com/css?family=Nunito&display=swap" rel="stylesheet"> <link rel="stylesheet" type="text/css" href="css/admin.css"> <link rel="stylesheet" type="text/css" href="css/style.css"> <script src="js/ui.js"> </script></head> <body> <header> <div class="topbar"> <div class="brand"></div> <h1 id="title">Development Suite</h1> </div> </header> <div class="content">';
+      var out = '<html> <head> <link href="https://fonts.googleapis.com/css?family=Nunito&display=swap" rel="stylesheet"> <link rel="stylesheet" type="text/css" href="css/admin.css"> <link rel="stylesheet" type="text/css" href="css/style.css"> <script src="js/ui.js"> <title>Corsica Development Suite</title> </script></head> <body> <header> <div class="topbar"> <div class="brand"></div> <h1 id="title">Development Suite</h1> </div> </header> <div class="content">';
       settings.get().then(function (settings) {
         out += '<div class="settings"><h2>Tags</h2><hr>';
         
@@ -75,13 +75,13 @@ module.exports = function (corsica) {
         out += '</div><br> <div class="settings"><h2>Subscriptions</h2><hr>';
         
         Object.keys(subscriptions).forEach(function(subscriber, index) {
-            out += "<h3>" + subscriber + "</h3>";
+            out += "<h3>" + screen + "</h3>";
             out += "<button onclick=" + '"';
-            out += "resetScreen('" + subscriber + "')";
+            out += "resetScreen('" + screen + "')";
             out += '"' + ">Refresh Screen</button><br>";
             subscriptions[subscriber].forEach(function(tag) {
-                out += "<label>Tag</label> <input type='text' id='tag" + subscriber + "' onfocusout=" + '"';
-                out += "setScreenTag('" + subscriber + "')";
+                out += "<label>Tag</label> <input type='text' id='tag" + screen + "' onfocusout=" + '"';
+                out += "setScreenTag('" + screen + "')";
                 out += '"' + "value='" + tag + "'><br>";
 
             });
@@ -358,5 +358,86 @@ module.exports = function (corsica) {
         });
 
     });
+    
+    
+
+    corsica.serveRoute('setScreenTag', function(req, res) {
+
+        let tag = req.query.tag || '';
+
+        let screen = req.query.screen || '';
+
+
+
+        if (screen.length == 0 || tag.length == 0) {
+
+            res.status(400);
+
+            return res.send('Expected tag and screen.');
+
+        }
+
+
+
+        settings.get().then(function (curSettings) {
+
+            let index = curSettings.tags.findIndex(e => e.name === tag);
+
+            if (index == -1) {
+
+                res.status(400);
+
+                return res.send('Tag does not exist.');
+
+            }
+
+
+
+            corsica.sendMessage('tags.setSubscriptions', {name: screen, tags: [tag]}).then(() => {
+
+              res.status(202);
+
+              res.send('Set subscription.');
+
+            });
+
+        });
+
+    });
+        
+    
+    corsica.serveRoute('removeTag', function(req, res) {
+
+      let tag = req.query.tag || '';
+
+
+
+      if (tag.length == 0) {
+
+          res.status(400);
+
+          return res.send('Expected tag.');
+
+      }
+
+
+
+      settings.get().then(function (curSettings) {
+
+          curSettings.tags = curSettings.tags.filter(e => e.name != tag);
+
+
+
+          settings.set(curSettings).then(function() {
+
+              res.status(202);
+
+              res.send('Removed tags.');
+
+          });
+
+      });
+
+  });
     
 };

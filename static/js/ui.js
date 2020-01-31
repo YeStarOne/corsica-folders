@@ -34,8 +34,13 @@ function addTag() {
     location.reload();
 }
 
+function removeTag(tag) {
+    fetch('removeTag&tag=' + tag);
+    location.reload();
+}
+
 function setScreenTag(screen) {
     var newTag = document.getElementById("tag" + screen).value;
-    fetch('changeScreenTag?tag=' + newTag + '&screen=' + screen);
+    fetch('setScreenTag?tag=' + newTag + '&screen=' + screen);
     location.reload();
 }
