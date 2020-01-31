@@ -31,9 +31,9 @@ module.exports = function (corsica) {
     };
   
     corsica.serveRoute('ui', function(req, res) {
-      var out = '<html> <head> <link href="https://fonts.googleapis.com/css?family=Nunito&display=swap" rel="stylesheet"> <link rel="stylesheet" type="text/css" href="css/style.css"> <script src="js/ui.js"> </script></head> <body> <header> <img id="logo" src="corsica.png"> <h1 id="title">Development Suite</h1> </header> <div class="content">';
+      var out = '<html> <head> <link href="https://fonts.googleapis.com/css?family=Nunito&display=swap" rel="stylesheet"> <link rel="stylesheet" type="text/css" href="css/admin.css"> <link rel="stylesheet" type="text/css" href="css/style.css"> <script src="js/ui.js"> </script></head> <body> <header> <div class="topbar"> <div class="brand"></div> <h1 id="title">Development Suite</h1> </div> </header> <div class="content">';
       settings.get().then(function (settings) {
-        out += '<div class="settings"><h2>Tags</h2>';
+        out += '<div class="settings"><h2>Tags</h2><hr>';
         
         settings["tags"].forEach(function(tag) {
             out += "<h3>" + tag["name"] + "</h3>";
@@ -72,7 +72,7 @@ module.exports = function (corsica) {
         out += "addTag()";
         out += '"' + ">Add Tag</button>";
 
-        out += '</div> <div class="settings"><h2>Subscriptions</h2>';
+        out += '</div><br> <div class="settings"><h2>Subscriptions</h2><hr>';
         
         Object.keys(subscriptions).forEach(function(subscriber, index) {
             out += "<h3>" + subscriber + "</h3>";
