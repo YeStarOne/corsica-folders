@@ -90,4 +90,273 @@ module.exports = function (corsica) {
         res.send(out);
       });
     });
+    
+    corsica.serveRoute('resetScreen', function(req, res) {
+
+        var screen = req.query.screen || '';
+
+
+
+        if (screen.length == 0) {
+
+            res.status(400);
+
+            return res.send('Expected screen.');
+
+        }
+
+
+
+        if (subscriptions[screen]) {
+
+            corsica.sendMessage('reset', {screen: screen});
+
+       
+
+            res.status(202);
+
+            res.send('Reset signal sent.');
+
+        } else {
+
+            res.status(404);
+
+            res.send('Screen not found.');
+
+        }
+
+    });
+
+
+
+    // TODO : set tag of screen
+
+
+
+    corsica.serveRoute('setTag', function(req, res) {
+
+        var tag = req.query.tag || '';
+
+        var name = req.query.name || '';
+
+        var random = req.query.random;
+
+
+
+        if (tag.length == 0) {
+
+            res.status(400);
+
+            return res.send('Expected tag and name.');
+
+        }
+
+
+
+        settings.get().then(function (curSettings) {
+
+            var index = curSettings.tags.findIndex(e => e.name === tag);
+
+            if (index == -1) {
+
+                res.status(404);
+
+                return res.send('Tag does not exist.');
+
+            }
+
+
+
+            if (name.length != 0) {
+
+                if (curSettings.tags.findIndex(e => e.name === name) == -1)
+
+                    curSettings.tags[index].name = name;
+
+                else {
+
+                    res.status(400);
+
+                    return res.send('That name is already used in another tag.');
+
+                }
+
+            }
+
+            if (random != undefined) {
+
+                curSettings.tags[index].random = (random == 'true');
+
+            }
+
+
+
+            settings.set(curSettings).then(function() {
+
+                res.status(202);
+
+                res.send('Set new tag.');
+
+            });
+
+        });
+
+    });
+
+
+
+    corsica.serveRoute('addTag', function(req, res) {
+
+        var tag = req.query.tag || '';
+
+        var random = req.query.random == 'true' || !(req.query.random) ? true : false;
+
+
+
+        settings.get().then(function (curSettings) {
+
+            if (tag.length == 0) {
+
+                tag = `tag${curSettings.tags.length}`;
+
+            }
+
+
+
+            let index = curSettings.tags.findIndex(e => e.name === tag);
+
+            if (index != -1) {
+
+                res.status(400);
+
+                return res.send('That tag already exists.');
+
+            }
+
+
+
+            curSettings.tags.push({
+
+                name: tag,
+
+                random: random,
+
+                commands: []
+
+            });
+
+
+
+            settings.set(curSettings).then(function() {
+
+                res.send(202);
+
+                res.send('Added new tag.');
+
+            });
+
+        });
+
+    });    
+
+
+
+    corsica.serveRoute('addCommand', function(req, res) {
+
+        var tag = req.query.tag || '';
+
+        var command = req.query.command || '';
+
+
+
+        if (tag.length == 0 || command.length == 0) {
+
+            res.status(400);
+
+            return res.send('Expected tag and command.');
+
+        }
+
+
+
+        settings.get().then(function (curSettings) {
+
+            let index = curSettings.tags.findIndex(e => e.name === tag);
+
+            if (index == -1) {
+
+                res.status(404);
+
+                return res.send('Tag does not exist.');
+
+            }
+
+
+
+            curSettings.tags[index].commands.push(command);
+
+            
+
+            settings.set(curSettings).then(function() {
+
+                res.status(202);
+
+                res.send('Set settings.');
+
+            });
+
+        });
+
+    });
+
+
+
+    corsica.serveRoute('removeCommand', function(req, res) {
+
+        var tag = req.query.tag || '';
+
+        var command = req.query.command || '';
+
+
+
+        if (tag.length == 0 || command.length == 0) {
+
+            res.status(400);
+
+            return res.send('Expected tag and command.');
+
+        }
+
+
+
+        settings.get().then(function (curSettings) {
+
+            var index = curSettings.tags.findIndex(e => e.name === tag);
+
+            if (index == -1) {
+
+                res.status(404);
+
+                return res.send('Tag does not exist.');
+
+            }
+
+
+
+            curSettings.tags[index].commands = curSettings.tags[index].commands.filter(cmd => { return cmd != command; } );;
+
+
+
+            settings.set(curSettings).then(function() {
+
+                res.status(202);
+
+                res.send('Set settings.');
+
+            });
+
+        });
+
+    });
+    
 };

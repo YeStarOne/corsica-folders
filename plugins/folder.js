@@ -18,8 +18,6 @@ const directoryPath = path.join(__dirname, '../static/img');
 
 module.exports = function(corsica) {
   corsica.on('folder', function(content) {
-    
-    console.log(content);
 
     fs.readdir(path.join(directoryPath, content._args[0]), function (err, files) {
       if (err) {
@@ -27,6 +25,9 @@ module.exports = function(corsica) {
           return content;
       } 
       randomFile = files[Math.floor(Math.random() * files.length)];
+        
+        
+      console.log("img/" + content._args[0] + "/" + randomFile);
 
       corsica.sendMessage('content', {
         screen: content.screen,
