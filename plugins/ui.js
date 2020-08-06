@@ -1,5 +1,5 @@
 module.exports = function (corsica) {
-    var useCommand = corsica.config.plugins.indexOf('command') >= 0;
+    var useCommand = corsica.config.plugins.iOf('command') >= 0;
 
     var subscriptions = {};
   
@@ -26,11 +26,11 @@ module.exports = function (corsica) {
         return msg;
       });
   
-    var insecureScrub = function(str) {
+    var insecurescrub = function(str) {
       return str.replace(/</g, "&lt;").replace(/>/g, "&gt;");
     };
   
-    corsica.serveRoute('ui', function(req, res) {
+    corsica.serveRoute('ui', function(request, response) {
       var out = '<html> <head> <link href="https://fonts.googleapis.com/css?family=Nunito&display=swap" rel="stylesheet"> <link rel="stylesheet" type="text/css" href="css/admin.css"> <link rel="stylesheet" type="text/css" href="css/style.css"> <script src="js/ui.js"> <title>Corsica Development Suite</title> </script></head> <body> <header> <div class="topbar"> <div class="brand"></div> <h1 id="title">Development Suite</h1> </div> </header> <div class="content">';
       settings.get().then(function (settings) {
         out += '<div class="settings"><h2>Tags</h2><hr>';
@@ -74,7 +74,7 @@ module.exports = function (corsica) {
 
         out += '</div><br> <div class="settings"><h2>Subscriptions</h2><hr>';
         
-        Object.keys(subscriptions).forEach(function(subscriber, index) {
+        Object.keys(subscriptions).forEach(function(subscriber, i) {
             out += "<h3>" + screen + "</h3>";
             out += "<button onclick=" + '"';
             out += "resetScreen('" + screen + "')";
@@ -87,357 +87,130 @@ module.exports = function (corsica) {
             });
         });
         out += '</div></div></body></html>';
-        res.send(out);
+        response.send(out);
       });
     });
-    
-    corsica.serveRoute('resetScreen', function(req, res) {
 
-        var screen = req.query.screen || '';
+    corsica.serveRoute('addCommand', function(request, response) {
+        var tag = request.query.tag || '';
+        var command = request.query.command || '';
+        settings.get().then(function (currentSettings) {
+            var i = currentSettings.tags.findi(e => e.name === tag);
+            if (i == -1) {
+                return response.send('No matching tag.');
+            }
+            currentSettings.tags[i].commands.push(command);
+            settings.set(currentSettings).then(function() {
+                response.send('Added command.');
+            });
+        });
+    });
 
+    corsica.serveRoute('removeCommand', function(request, response) {
+        var tag = request.query.tag || '';
+        var command = request.query.command || '';
+        settings.get().then(function (currentSettings) {
+            var i = currentSettings.tags.findi(e => e.name === tag);
+            if (i == -1) {
+                return response.send('No matching tag.');
+            }
+            currentSettings.tags[i].commands = currentSettings.tags[i].commands.filter(cmd => { 
+                return cmd != command; 
+            });
+            settings.set(currentSettings).then(function() {
+                response.send('Removed command.');
+            });
+        });
+    });
 
+    corsica.serveRoute('setTag', function(request, response) {
+        var tag = request.query.tag || '';
+        var name = request.query.name || '';
+        var random = request.query.random;
+        settings.get().then(function (currentSettings) {
+            var i = currentSettings.tags.findi(e => e.name === tag);
+            if (i == -1) {
+                return response.send('No matching tag.');
+            }
+            if (name.length != 0) {
+                if (currentSettings.tags.findi(e => e.name === name) == -1)
+                currentSettings.tags[i].name = name;
+                else {
+                    return response.send('Tag name already exists.');
+                }
+            }
+            if (random != undefined) {
+                if(random == 'true') {
+                    currentSettings.tags[i].random = true;
+                } else {
+                    currentSettings.tags[i].random = false;
+                }
+            }
+            settings.set(currentSettings).then(function() {
+                response.send('Updated tag.');
+            });
+        });
+    });
 
-        if (screen.length == 0) {
+    corsica.serveRoute('addTag', function(request, response) {
+        var tag = request.query.tag || '';
+        var random = request.query.random == 'true' || !(request.query.random) ? true : false;
+        settings.get().then(function (currentSettings) {
+            if (tag.length == 0) { //No tag passed, make up new name
+                tag = `tag` + Math.random().toString();
+                var i = currentSettings.tags.findi(e => e.name === tag);
+                while (i == -1) {
+                    tag = `tag` + Math.random().toString();
+                    let i = currentSettings.tags.findi(e => e.name === tag); 
+                }
+            }
+            let i = currentSettings.tags.findi(e => e.name === tag);
+            if (i != -1) {
+                return response.send('Tag name already exists.');
+            }
+            currentSettings.tags.push({
+                name: tag,
+                random: random,
+                commands: []
+            });
+            settings.set(currentSettings).then(function() {
+                response.send('Added tag.');
+            });
+        });
+    });  
 
-            res.status(400);
+    corsica.serveRoute('removeTag', function(request, response) {
+        var tag = request.query.tag || '';
+        settings.get().then(function (currentSettings) {
+            currentSettings.tags = currentSettings.tags.filter(e => e.name != tag);
+            settings.set(currentSettings).then(function() {
+                response.send('Removed tag.');
+            });
+        });
+    });
 
-            return res.send('Expected screen.');
-
-        }
-
-
-
+    corsica.serveRoute('responseetScreen', function(request, response) {
+        var screen = request.query.screen || '';
         if (subscriptions[screen]) {
-
             corsica.sendMessage('reset', {screen: screen});
-
-       
-
-            res.status(202);
-
-            res.send('Reset signal sent.');
+            response.send('Resetting ' + screen);
 
         } else {
-
-            res.status(404);
-
-            res.send('Screen not found.');
-
+            response.send('No matching screen.');
         }
-
-    });
-
-
-
-    // TODO : set tag of screen
-
-
-
-    corsica.serveRoute('setTag', function(req, res) {
-
-        var tag = req.query.tag || '';
-
-        var name = req.query.name || '';
-
-        var random = req.query.random;
-
-
-
-        if (tag.length == 0) {
-
-            res.status(400);
-
-            return res.send('Expected tag and name.');
-
-        }
-
-
-
-        settings.get().then(function (curSettings) {
-
-            var index = curSettings.tags.findIndex(e => e.name === tag);
-
-            if (index == -1) {
-
-                res.status(404);
-
-                return res.send('Tag does not exist.');
-
-            }
-
-
-
-            if (name.length != 0) {
-
-                if (curSettings.tags.findIndex(e => e.name === name) == -1)
-
-                    curSettings.tags[index].name = name;
-
-                else {
-
-                    res.status(400);
-
-                    return res.send('That name is already used in another tag.');
-
-                }
-
-            }
-
-            if (random != undefined) {
-
-                curSettings.tags[index].random = (random == 'true');
-
-            }
-
-
-
-            settings.set(curSettings).then(function() {
-
-                res.status(202);
-
-                res.send('Set new tag.');
-
-            });
-
-        });
-
-    });
-
-
-
-    corsica.serveRoute('addTag', function(req, res) {
-
-        var tag = req.query.tag || '';
-
-        var random = req.query.random == 'true' || !(req.query.random) ? true : false;
-
-
-
-        settings.get().then(function (curSettings) {
-
-            if (tag.length == 0) {
-
-                tag = `tag${curSettings.tags.length}`;
-
-            }
-
-
-
-            let index = curSettings.tags.findIndex(e => e.name === tag);
-
-            if (index != -1) {
-
-                res.status(400);
-
-                return res.send('That tag already exists.');
-
-            }
-
-
-
-            curSettings.tags.push({
-
-                name: tag,
-
-                random: random,
-
-                commands: []
-
-            });
-
-
-
-            settings.set(curSettings).then(function() {
-
-                res.send(202);
-
-                res.send('Added new tag.');
-
-            });
-
-        });
-
-    });    
-
-
-
-    corsica.serveRoute('addCommand', function(req, res) {
-
-        var tag = req.query.tag || '';
-
-        var command = req.query.command || '';
-
-
-
-        if (tag.length == 0 || command.length == 0) {
-
-            res.status(400);
-
-            return res.send('Expected tag and command.');
-
-        }
-
-
-
-        settings.get().then(function (curSettings) {
-
-            let index = curSettings.tags.findIndex(e => e.name === tag);
-
-            if (index == -1) {
-
-                res.status(404);
-
-                return res.send('Tag does not exist.');
-
-            }
-
-
-
-            curSettings.tags[index].commands.push(command);
-
-            
-
-            settings.set(curSettings).then(function() {
-
-                res.status(202);
-
-                res.send('Set settings.');
-
-            });
-
-        });
-
-    });
-
-
-
-    corsica.serveRoute('removeCommand', function(req, res) {
-
-        var tag = req.query.tag || '';
-
-        var command = req.query.command || '';
-
-
-
-        if (tag.length == 0 || command.length == 0) {
-
-            res.status(400);
-
-            return res.send('Expected tag and command.');
-
-        }
-
-
-
-        settings.get().then(function (curSettings) {
-
-            var index = curSettings.tags.findIndex(e => e.name === tag);
-
-            if (index == -1) {
-
-                res.status(404);
-
-                return res.send('Tag does not exist.');
-
-            }
-
-
-
-            curSettings.tags[index].commands = curSettings.tags[index].commands.filter(cmd => { return cmd != command; } );;
-
-
-
-            settings.set(curSettings).then(function() {
-
-                res.status(202);
-
-                res.send('Set settings.');
-
-            });
-
-        });
-
     });
     
-    
-
-    corsica.serveRoute('setScreenTag', function(req, res) {
-
-        let tag = req.query.tag || '';
-
-        let screen = req.query.screen || '';
-
-
-
-        if (screen.length == 0 || tag.length == 0) {
-
-            res.status(400);
-
-            return res.send('Expected tag and screen.');
-
-        }
-
-
-
-        settings.get().then(function (curSettings) {
-
-            let index = curSettings.tags.findIndex(e => e.name === tag);
-
-            if (index == -1) {
-
-                res.status(400);
-
-                return res.send('Tag does not exist.');
-
+    corsica.serveRoute('setScreenTag', function(request, response) {
+        var tag = request.query.tag || '';
+        var screen = request.query.screen || '';
+        settings.get().then(function (currentSettings) {
+            var i = currentSettings.tags.findi(e => e.name === tag);
+            if (i == -1) {
+                return response.send('No matching tag.');
             }
-
-
-
             corsica.sendMessage('tags.setSubscriptions', {name: screen, tags: [tag]}).then(() => {
-
-              res.status(202);
-
-              res.send('Set subscription.');
-
+              response.send('Set screen tag.');
             });
-
         });
-
     });
-        
-    
-    corsica.serveRoute('removeTag', function(req, res) {
-
-      let tag = req.query.tag || '';
-
-
-
-      if (tag.length == 0) {
-
-          res.status(400);
-
-          return res.send('Expected tag.');
-
-      }
-
-
-
-      settings.get().then(function (curSettings) {
-
-          curSettings.tags = curSettings.tags.filter(e => e.name != tag);
-
-
-
-          settings.set(curSettings).then(function() {
-
-              res.status(202);
-
-              res.send('Removed tags.');
-
-          });
-
-      });
-
-  });
-    
 };
